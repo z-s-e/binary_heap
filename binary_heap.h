@@ -50,11 +50,19 @@ struct algorithm {
         return second_child_index(idx) - 1;
     }
 
+    static iterator first_leaf(Heap *heap)
+    {
+        const iterator first = heap->begin();
+        const difference_type size = heap->end() - first;
+        return first + (size / 2);
+    }
+
     // Basic algorithms
 
+    template< typename T >
     static difference_type up_heap(Heap *heap,
                                    difference_type holeIndex,
-                                   const value_type& value,
+                                   const T& value,
                                    const difference_type topIndex = difference_type(0))
     {
         const compare_type comp = heap->compare();
@@ -111,14 +119,15 @@ struct algorithm {
         while( secondChild < size ) {
             const difference_type firstChild = secondChild - 1;
             difference_type maxIdx = idx;
-            const value_type* maxVal = &value;
 
-            if( comp(*maxVal, *(first + secondChild)) ) {
-                maxIdx = secondChild;
-                maxVal = &(*(first + secondChild));
-            }
-            if( comp(*maxVal, *(first + firstChild)) )
+            if( comp(value, *(first + secondChild)) ) {
+                if( comp(*(first + secondChild), *(first + firstChild)) )
+                    maxIdx = firstChild;
+                else
+                    maxIdx = secondChild;
+            } else if( comp(value, *(first + firstChild)) ) {
                 maxIdx = firstChild;
+            }
 
             if( maxIdx == idx ) {
                 heap->insert_element(first, idx, std::forward<T>(value));
@@ -273,8 +282,8 @@ public:
     size_t size() const { return d.c.size(); }
     const T& top() const { return d.c.front(); }
 
-    void push(const T& value) { alg::push(this, value); }
-    void push(T&& value) { alg::push(this, std::move(value)); }
+    template< typename U >
+    void push(U&& value) { alg::push(this, std::forward<U>(value)); }
 
     void pop() { alg::pop(this); }
 
@@ -303,13 +312,10 @@ public:
         return value;
     }
 
-    void update(const_iterator position, const T& newValue)
+    template< typename U >
+    void update(const_iterator position, U&& newValue)
     {
-        update_value(position, newValue);
-    }
-    void update(const_iterator position, T&& newValue)
-    {
-        update_value(position, std::move(newValue));
+        update_value(position, std::forward<U>(newValue));
     }
 
     // If the user knows that the updated value has increased or decreased
@@ -318,25 +324,19 @@ public:
     /// Like update, but assumes newValue has not decreased (w.r.t. compare()
     /// and the old value at position).
     /// Behavior is undefined when this precondition does not hold.
-    void increase(const_iterator position, const T& newValue)
+    template< typename U >
+    void increase(const_iterator position, U&& newValue)
     {
-        increase_value(position, newValue);
-    }
-    void increase(const_iterator position, T&& newValue)
-    {
-        increase_value(position, std::move(newValue));
+        increase_value(position, std::forward<U>(newValue));
     }
 
     /// Like update, but assumes newValue has not increased (w.r.t. compare()
     /// and the old value at position).
     /// Behavior is undefined when this precondition does not hold.
-    void decrease(const_iterator position, const T& newValue)
+    template< typename U >
+    void decrease(const_iterator position, U&& newValue)
     {
-        decrease_value(position, newValue);
-    }
-    void decrease(const_iterator position, T&& newValue)
-    {
-        decrease_value(position, std::move(newValue));
+        decrease_value(position, std::forward<U>(newValue));
     }
 
     const_iterator begin() const { return cbegin(); }
